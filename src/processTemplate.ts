@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import {
   cloneNodeWithoutChildren,
   getNextSibling,
@@ -109,17 +108,17 @@ export async function extractQuery(
 
 type ReportOutput =
   | {
-    status: 'success';
-    report: Node;
-    images: Images;
-    links: Links;
-    htmls: Htmls;
-    fields: Fields;
-  }
+      status: 'success';
+      report: Node;
+      images: Images;
+      links: Links;
+      htmls: Htmls;
+      fields: Fields;
+    }
   | {
-    status: 'errors';
-    errors: Error[];
-  };
+      status: 'errors';
+      errors: Error[];
+    };
 
 export async function produceJsReport(
   data: ReportData | undefined,
@@ -912,7 +911,7 @@ const processLink = async (ctx: Context, linkPars: LinkPars) => {
   const link = node('w:hyperlink', { 'r:id': relId, 'w:history': '1' }, [
     node('w:r', {}, [
       textRunPropsNode ||
-      node('w:rPr', {}, [node('w:u', { 'w:val': 'single' })]),
+        node('w:rPr', {}, [node('w:u', { 'w:val': 'single' })]),
       node('w:t', {}, [newTextNode(label)]),
     ]),
   ]);
@@ -940,7 +939,9 @@ const processField = async (ctx: Context, fieldPars: FieldPars) => {
   const field = node('w:r', {}, [
     node('w:fldChar', { 'w:fldCharType': 'begin' }),
     node('w:instrText', { 'xml:space': 'preserve' }, [
-      newTextNode(fieldPars.code.toUpperCase() + ' ' + fieldPars.params.join(' ')),
+      newTextNode(
+        fieldPars.code.toUpperCase() + ' ' + fieldPars.params.join(' ')
+      ),
     ]),
     node('w:fldChar', { 'w:fldCharType': 'separate' }),
     node('w:t', {}, [newTextNode(fieldPars.initialValue ?? '')]),

@@ -1097,6 +1097,70 @@ Morbi dignissim consequat ex, non finibus est faucibus sodales. Integer sed just
         );
         expect(result.includes('enigrebua')).toBeTruthy(); // the word aubergine in reverse
       });
+
+      it('Processes FIELD commands', async () => {
+        const template = await fs.promises.readFile(
+          path.join(__dirname, 'fixtures', 'fields.docx')
+        );
+        const result = await createReport(
+          {
+            noSandbox,
+            template,
+            data: {
+              words: [
+                {
+                  word: 'hel"lo',
+                  definition: 'A common greeting used when meeting someone',
+                },
+                {
+                  word: 'goodbye',
+                  definition:
+                    'A common greeting used when ending a meeting with someone',
+                },
+              ],
+            },
+            additionalJsContext: {
+              quote: (x: string) => `"${x}"`,
+              escape: (x: string) => x.replace('"', '\\"'),
+              qe: (x: string) => `"${x.replace('"', '\\"')}"`,
+            },
+          },
+          'JS'
+        );
+        expect(result).toMatchSnapshot();
+      });
+
+      it('Processes XE shorthand commands', async () => {
+        const template = await fs.promises.readFile(
+          path.join(__dirname, 'fixtures', 'fields.docx')
+        );
+        const result = await createReport(
+          {
+            noSandbox,
+            template,
+            data: {
+              words: [
+                {
+                  word: 'hel"lo',
+                  definition: 'A common greeting used when meeting someone',
+                },
+                {
+                  word: 'goodbye',
+                  definition:
+                    'A common greeting used when ending a meeting with someone',
+                },
+              ],
+            },
+            additionalJsContext: {
+              quote: (x: string) => `"${x}"`,
+              escape: (x: string) => x.replace('"', '\\"'),
+              qe: (x: string) => `"${x.replace('"', '\\"')}"`,
+            },
+          },
+          'JS'
+        );
+        expect(result).toMatchSnapshot();
+      });
     });
   });
 });
