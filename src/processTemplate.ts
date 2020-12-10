@@ -20,8 +20,8 @@ import {
   LinkPars,
   Links,
   Htmls,
-  XrefPars,
-  Xrefs,
+  FieldPars,
+  Fields,
   Image,
   BUILT_IN_COMMANDS,
   ImageExtensions,
@@ -52,8 +52,8 @@ function newContext(options: CreateReportOptions): Context {
     links: {},
     htmlId: 0,
     htmls: {},
-    xrefId: 0,
-    xrefs: {},
+    fieldId: 0,
+    fields: {},
     vars: {},
     loops: [],
     fJump: false,
@@ -114,7 +114,7 @@ type ReportOutput =
     images: Images;
     links: Links;
     htmls: Htmls;
-    xrefs: Xrefs;
+    fields: Fields;
   }
   | {
     status: 'errors';
@@ -278,24 +278,24 @@ export async function walkTemplate(
         delete ctx.pendingLinkNode;
       }
 
-      // If an xref was generated, replace the parent `w:r` node with
-      // the xref node
+      // If a field was generated, replace the parent `w:r` node with
+      // the field node
       if (
-        ctx.pendingXrefNode &&
+        ctx.pendingFieldNode &&
         !nodeOut._fTextNode && // Flow-prevention
         nodeOut._tag === 'w:r'
       ) {
-        const xrefNode = ctx.pendingXrefNode;
+        const fieldNode = ctx.pendingFieldNode;
         const parent = nodeOut._parent;
         if (parent) {
-          xrefNode._parent = parent;
+          fieldNode._parent = parent;
           parent._children.pop();
-          parent._children.push(xrefNode);
+          parent._children.push(fieldNode);
           // Prevent containing paragraph or table row from being removed
           ctx.buffers['w:p'].fInsertedText = true;
           ctx.buffers['w:tr'].fInsertedText = true;
         }
-        delete ctx.pendingXrefNode;
+        delete ctx.pendingFieldNode;
       }
 
       // If a html page was generated, replace the parent `w:p` node with
@@ -411,7 +411,7 @@ export async function walkTemplate(
     images: ctx.images,
     links: ctx.links,
     htmls: ctx.htmls,
-    xrefs: ctx.xrefs,
+    fields: ctx.fields,
   };
 }
 
@@ -572,14 +572,14 @@ const processCmd: CommandProcessor = async (
       }
 
       // HTML <code>
-    } else if (cmdName === 'XREF') {
+    } else if (cmdName === 'FIELD') {
       if (!isLoopExploring(ctx)) {
-        const pars: XrefPars | undefined = await runUserJsAndGetRaw(
+        const pars: FieldPars | undefined = await runUserJsAndGetRaw(
           data,
           cmdRest,
           ctx
         );
-        if (pars != null) await processXref(ctx, pars);
+        if (pars != null) await processField(ctx, pars);
       }
 
       // HTML <code>
@@ -927,21 +927,24 @@ const processHtml = async (ctx: Context, data: string) => {
   ctx.pendingHtmlNode = html;
 };
 
-const processXref = async (ctx: Context, xrefPars: XrefPars) => {
-  ctx.xrefId += 1;
-  const id = String(ctx.xrefId);
-  const relId = `xref${id}`;
-  ctx.xrefs[relId] = xrefPars;
+//see http://officeopenxml.com/WPfields.php
+const processField = async (ctx: Context, fieldPars: FieldPars) => {
+  ctx.fieldId += 1;
+  const id = String(ctx.fieldId);
+  const relId = `field${id}`;
+  ctx.fields[relId] = fieldPars;
   const node = newNonTextNode;
 
-  const xref = node('w:r', {}, [
+  const field = node('w:r', {}, [
     node('w:fldChar', { 'w:fldCharType': 'begin' }),
     node('w:instrText', { 'xml:space': 'preserve' }, [
-      newTextNode('XE "' + xrefPars.xref.replace('"', '\\"') + '"'),
+      newTextNode(fieldPars.code.toUpperCase() + ' ' + fieldPars.params.join(' ')),
     ]),
+    node('w:fldChar', { 'w:fldCharType': 'separate' }),
+    node('w:t', {}, [newTextNode(fieldPars.initialValue ?? '')]),
     node('w:fldChar', { 'w:fldCharType': 'end' }),
   ]);
-  ctx.pendingXrefNode = xref;
+  ctx.pendingFieldNode = field;
 };
 
 // ==========================================

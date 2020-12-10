@@ -150,9 +150,9 @@ export type Context = {
   pendingHtmlNode?: TextNode | NonTextNode;
   htmlId: number;
   htmls: Htmls;
-  pendingXrefNode?: NonTextNode;
-  xrefId: number;
-  xrefs: Xrefs;
+  pendingFieldNode?: NonTextNode;
+  fieldId: number;
+  fields: Fields;
   vars: { [name: string]: VarValue };
   loops: Array<LoopStatus>;
   fJump: boolean;
@@ -178,8 +178,8 @@ export type Image = {
 export type Links = { [id: string]: Link };
 export type Link = { url: string };
 export type Htmls = { [id: string]: string };
-export type Xrefs = { [id: string]: Xref };
-export type Xref = { xref: string };
+export type Fields = { [id: string]: Field };
+export type Field = { code: string; params: [string]; initialValue?: string };
 
 export type BufferStatus = {
   text: string;
@@ -234,8 +234,10 @@ export type LinkPars = {
   label?: string;
 };
 
-export type XrefPars = {
-  xref: string;
+export type FieldPars = {
+  code: string;
+  params: [string];
+  initialValue?: string;
 };
 
 export type CommandSummary = {
@@ -259,5 +261,5 @@ export const BUILT_IN_COMMANDS = [
   'IMAGE',
   'LINK',
   'HTML',
-  'XREF',
+  'FIELD',
 ] as const;
