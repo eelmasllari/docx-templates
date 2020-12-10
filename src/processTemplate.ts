@@ -627,6 +627,8 @@ export function getCommand(
     cmd = `INS ${cmd.slice(1).trim()}`;
   } else if (cmd[0] === '!') {
     cmd = `EXEC ${cmd.slice(1).trim()}`;
+  } else if (cmd.substring(0, 2) === 'XE') {
+    cmd = `FIELD ({ code: 'XE', params: [ qe(${cmd.slice(2).trim()}) ] })`;
   } else if (notBuiltIns(cmd)) {
     cmd = `INS ${cmd.trim()}`;
   }
