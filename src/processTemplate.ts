@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   cloneNodeWithoutChildren,
   getNextSibling,
@@ -19,6 +20,8 @@ import {
   LinkPars,
   Links,
   Htmls,
+  XrefPars,
+  Xrefs,
   Image,
   BUILT_IN_COMMANDS,
   ImageExtensions,
@@ -49,6 +52,8 @@ function newContext(options: CreateReportOptions): Context {
     links: {},
     htmlId: 0,
     htmls: {},
+    xrefId: 0,
+    xrefs: {},
     vars: {},
     loops: [],
     fJump: false,
@@ -104,16 +109,17 @@ export async function extractQuery(
 
 type ReportOutput =
   | {
-      status: 'success';
-      report: Node;
-      images: Images;
-      links: Links;
-      htmls: Htmls;
-    }
+    status: 'success';
+    report: Node;
+    images: Images;
+    links: Links;
+    htmls: Htmls;
+    xrefs: Xrefs;
+  }
   | {
-      status: 'errors';
-      errors: Error[];
-    };
+    status: 'errors';
+    errors: Error[];
+  };
 
 export async function produceJsReport(
   data: ReportData | undefined,
@@ -272,6 +278,26 @@ export async function walkTemplate(
         delete ctx.pendingLinkNode;
       }
 
+      // If an xref was generated, replace the parent `w:r` node with
+      // the xref node
+      if (
+        ctx.pendingXrefNode &&
+        !nodeOut._fTextNode && // Flow-prevention
+        nodeOut._tag === 'w:r'
+      ) {
+        const xrefNode = ctx.pendingXrefNode;
+        const parent = nodeOut._parent;
+        if (parent) {
+          xrefNode._parent = parent;
+          parent._children.pop();
+          parent._children.push(xrefNode);
+          // Prevent containing paragraph or table row from being removed
+          ctx.buffers['w:p'].fInsertedText = true;
+          ctx.buffers['w:tr'].fInsertedText = true;
+        }
+        delete ctx.pendingXrefNode;
+      }
+
       // If a html page was generated, replace the parent `w:p` node with
       // the html node
       if (
@@ -385,6 +411,7 @@ export async function walkTemplate(
     images: ctx.images,
     links: ctx.links,
     htmls: ctx.htmls,
+    xrefs: ctx.xrefs,
   };
 }
 
@@ -542,6 +569,17 @@ const processCmd: CommandProcessor = async (
           ctx
         );
         if (pars != null) await processLink(ctx, pars);
+      }
+
+      // HTML <code>
+    } else if (cmdName === 'XREF') {
+      if (!isLoopExploring(ctx)) {
+        const pars: XrefPars | undefined = await runUserJsAndGetRaw(
+          data,
+          cmdRest,
+          ctx
+        );
+        if (pars != null) await processXref(ctx, pars);
       }
 
       // HTML <code>
@@ -872,7 +910,7 @@ const processLink = async (ctx: Context, linkPars: LinkPars) => {
   const link = node('w:hyperlink', { 'r:id': relId, 'w:history': '1' }, [
     node('w:r', {}, [
       textRunPropsNode ||
-        node('w:rPr', {}, [node('w:u', { 'w:val': 'single' })]),
+      node('w:rPr', {}, [node('w:u', { 'w:val': 'single' })]),
       node('w:t', {}, [newTextNode(label)]),
     ]),
   ]);
@@ -887,6 +925,23 @@ const processHtml = async (ctx: Context, data: string) => {
   const node = newNonTextNode;
   const html = node('w:altChunk', { 'r:id': relId });
   ctx.pendingHtmlNode = html;
+};
+
+const processXref = async (ctx: Context, xrefPars: XrefPars) => {
+  ctx.xrefId += 1;
+  const id = String(ctx.xrefId);
+  const relId = `xref${id}`;
+  ctx.xrefs[relId] = xrefPars;
+  const node = newNonTextNode;
+
+  const xref = node('w:r', {}, [
+    node('w:fldChar', { 'w:fldCharType': 'begin' }),
+    node('w:instrText', { 'xml:space': 'preserve' }, [
+      newTextNode('XE "' + xrefPars.xref.replace('"', '\\"') + '"'),
+    ]),
+    node('w:fldChar', { 'w:fldCharType': 'end' }),
+  ]);
+  ctx.pendingXrefNode = xref;
 };
 
 // ==========================================

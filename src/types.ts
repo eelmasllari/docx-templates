@@ -150,6 +150,9 @@ export type Context = {
   pendingHtmlNode?: TextNode | NonTextNode;
   htmlId: number;
   htmls: Htmls;
+  pendingXrefNode?: NonTextNode;
+  xrefId: number;
+  xrefs: Xrefs;
   vars: { [name: string]: VarValue };
   loops: Array<LoopStatus>;
   fJump: boolean;
@@ -175,6 +178,8 @@ export type Image = {
 export type Links = { [id: string]: Link };
 export type Link = { url: string };
 export type Htmls = { [id: string]: string };
+export type Xrefs = { [id: string]: Xref };
+export type Xref = { xref: string };
 
 export type BufferStatus = {
   text: string;
@@ -229,6 +234,10 @@ export type LinkPars = {
   label?: string;
 };
 
+export type XrefPars = {
+  xref: string;
+};
+
 export type CommandSummary = {
   raw: string;
   type: BuiltInCommand;
@@ -250,4 +259,5 @@ export const BUILT_IN_COMMANDS = [
   'IMAGE',
   'LINK',
   'HTML',
+  'XREF',
 ] as const;
